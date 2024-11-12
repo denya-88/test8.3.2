@@ -24,12 +24,14 @@ coverage:
   script:
     - pip install -r requirements.txt
     - pip install pytest coverage pytest-cov
-    - pytest --cov=drone_control --cov-report=xml
+    - export PYTHONPATH=$PYTHONPATH:$(pwd)
+    - pytest --cov=uav_control --cov-report=xml
   artifacts:
     reports:
       coverage_report:
         coverage_format: cobertura
         path: coverage.xml
+  coverage: '/TOTAL.*\s+(\d+\%)$/'
 
 lint:
   stage: lint
