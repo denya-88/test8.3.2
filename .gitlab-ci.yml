@@ -37,5 +37,6 @@ lint:
   stage: lint
   image: python:$PYTHON_VERSION
   script:
+    - pip install -r requirements.txt
     - pip install pylint
     - pylint uav_control.py

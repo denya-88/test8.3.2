@@ -1,13 +1,17 @@
-# uav_control.py
+"""
+Модуль для управления БПЛА с использованием MAVLink.
+"""
 
-from pymavlink import mavutil
 import time
 import math
-from typing import Optional, Dict
 import logging
+from typing import Optional, Dict
+
+from pymavlink import mavutil
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 class UAVControl:
     """
@@ -27,7 +31,7 @@ class UAVControl:
             logger.info("Соединение установлено")
             self.seq = 0  # Инициализация последовательного номера миссии
         except Exception as e:
-            logger.error(f"Ошибка подключения: {e}")
+            logger.error("Ошибка подключения: %s", e)
             raise ConnectionError(f"Failed to connect to UAV: {e}") from e
 
     def arm(self) -> None:
@@ -39,7 +43,7 @@ class UAVControl:
             self.master.motors_armed_wait()
             logger.info("БПЛА армирован")
         except Exception as e:
-            logger.error(f"Ошибка армирования БПЛА: {e}")
+            logger.error("Ошибка армирования БПЛА: %s", e)
             raise RuntimeError(f"Failed to arm UAV: {e}") from e
 
     def disarm(self) -> None:
@@ -51,7 +55,7 @@ class UAVControl:
             self.master.motors_disarmed_wait()
             logger.info("БПЛА disarmed")
         except Exception as e:
-            logger.error(f"Ошибка disarm БПЛА: {e}")
+            logger.error("Ошибка disarm БПЛА: %s", e)
             raise RuntimeError(f"Failed to disarm UAV: {e}") from e
 
     def takeoff(self, altitude: float) -> None:
@@ -74,7 +78,7 @@ class UAVControl:
                 current_lat = msg.lat / 1e7
                 current_lon = msg.lon / 1e7
             else:
-                raise Exception("Не удалось получить текущие координаты для взлёта")
+                raise RuntimeError("Не удалось получить текущие координаты для взлёта")
 
             self.master.mav.command_long_send(
                 self.master.target_system,
@@ -88,10 +92,10 @@ class UAVControl:
             )
 
             if not self.wait_command_ack(mavutil.mavlink.MAV_CMD_NAV_TAKEOFF):
-                raise Exception("Команда взлёта не подтверждена")
-            logger.info(f"Взлёт на высоту {altitude} метров")
+                raise RuntimeError("Команда взлёта не подтверждена")
+            logger.info("Взлёт на высоту %s метров", altitude)
         except Exception as e:
-            logger.error(f"Ошибка взлёта: {e}")
+            logger.error("Ошибка взлёта: %s", e)
             raise RuntimeError(f"Failed to take off: {e}") from e
 
     def set_mode(self, mode: str) -> None:
@@ -112,9 +116,9 @@ class UAVControl:
 
         try:
             self.master.set_mode(mode_id)
-            logger.info(f"Режим установлен: {mode}")
+            logger.info("Режим установлен: %s", mode)
         except Exception as e:
-            logger.error(f"Ошибка установки режима {mode}: {e}")
+            logger.error("Ошибка установки режима %s: %s", mode, e)
             raise RuntimeError(f"Failed to set mode {mode}: {e}") from e
 
     def get_telemetry(self) -> Optional[Dict[str, float]]:
@@ -145,14 +149,13 @@ class UAVControl:
                     assert -math.pi / 2 <= telemetry['pitch'] <= math.pi / 2, "Некорректный тангаж"
                     assert -math.pi <= telemetry['yaw'] <= math.pi, "Некорректное рыскание"
                 return telemetry
-            else:
-                logger.warning("Телеметрия недоступна")
-                return None
+            logger.warning("Телеметрия недоступна")
+            return None
         except AssertionError as e:
-            logger.error(f"Ошибка в телеметрии: {e}")
+            logger.error("Ошибка в телеметрии: %s", e)
             return None
         except Exception as e:
-            logger.error(f"Ошибка получения телеметрии: {e}")
+            logger.error("Ошибка получения телеметрии: %s", e)
             return None
 
     def wait_command_ack(self, command: int, timeout: int = 10) -> bool:
@@ -171,12 +174,11 @@ class UAVControl:
             ack_msg = self.master.recv_match(type='COMMAND_ACK', blocking=True, timeout=1)
             if ack_msg and ack_msg.command == command:
                 if ack_msg.result == mavutil.mavlink.MAV_RESULT_ACCEPTED:
-                    logger.info(f"Команда {command} подтверждена")
+                    logger.info("Команда %s подтверждена", command)
                     return True
-                else:
-                    logger.error(f"Команда {command} отклонена с кодом {ack_msg.result}")
-                    return False
-        logger.error(f"Не получено подтверждение для команды {command}")
+                logger.error("Команда %s отклонена с кодом %s", command, ack_msg.result)
+                return False
+        logger.error("Не получено подтверждение для команды %s", command)
         return False
 
     def goto(self, lat: float, lon: float, alt: float) -> None:
@@ -215,9 +217,9 @@ class UAVControl:
             )
 
             if not self.wait_command_ack(mavutil.mavlink.MAV_CMD_NAV_WAYPOINT):
-                raise Exception("Команда полёта к точке не подтверждена")
+                raise RuntimeError("Команда полёта к точке не подтверждена")
 
-            logger.info(f"Летим к точке ({lat}, {lon}, {alt})")
+            logger.info("Летим к точке (%s, %s, %s)", lat, lon, alt)
         except Exception as e:
-            logger.error(f"Ошибка при полёте к точке: {e}")
+            logger.error("Ошибка при полёте к точке: %s", e)
             raise RuntimeError(f"Failed to go to waypoint: {e}") from e
