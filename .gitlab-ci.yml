@@ -10,6 +10,7 @@ default:
   tags:
     - dev
 
+
 test:
   stage: test
   image: python:$PYTHON_VERSION
